@@ -32,7 +32,7 @@ const router = createBrowserRouter([
       },
       {
         path: '/:id',
-        element: <RequireAuth><RedirectLink /></RequireAuth>
+        element: <RedirectLink />
       }
     ]
   }

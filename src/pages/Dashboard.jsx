@@ -1,82 +1,125 @@
-import CreateLink from '@/components/CreateLink'
-import Error from '@/components/Error'
-import LinkCard from '@/components/LinkCard'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { UrlState } from '@/Context'
-import { getClicksForUrls } from '@/db/apiClicks'
-import { getUrls } from '@/db/apiUrls'
-import useFetch from '@/hooks/useFetch'
-import { Filter } from 'lucide-react'
-import React, { useEffect, useState } from 'react'
-import { BarLoader } from 'react-spinners'
+import React, { useEffect, useState } from 'react';
+import CreateLink from '@/components/CreateLink';
+import Error from '@/components/Error';
+import LinkCard from '@/components/LinkCard';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { UrlState } from '@/Context';
+import { getClicksForUrls } from '@/db/apiClicks';
+import { getUrls } from '@/db/apiUrls';
+import useFetch from '@/hooks/useFetch';
+import { Filter, Link as LinkIcon, MousePointerClick } from 'lucide-react';
+import { BarLoader } from 'react-spinners';
 
 const Dashboard = () => {
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
   const { user } = UrlState();
   const { loading, error, data: urls, fn: fnUrls } = useFetch(getUrls, user.id);
-  const { loading: loadingClicks, data: clicks, fn: fnClicks } = useFetch(getClicksForUrls, urls?.map(url => url.id));
+  const { loading: loadingClicks, data: clicks, fn: fnClicks } = useFetch(
+    getClicksForUrls,
+    urls?.map((url) => url.id)
+  );
 
-  const filterUrls = urls?.filter(url => url.title.toLowerCase().includes(searchQuery.toLowerCase()))
+  const filterUrls = urls?.filter((url) =>
+    url.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   useEffect(() => {
     fnUrls();
-  }, [])
+  }, []);
 
   useEffect(() => {
-    urls && urls.length && fnClicks();
-  }, [urls?.length])
+    if (urls && urls.length) {
+      fnClicks();
+    }
+  }, [urls?.length]);
 
+  const isEmpty = !urls || urls.length === 0;
 
-  return <div className='flex flex-col gap-8'>
-    {(loading || loadingClicks) && <BarLoader width={"100%"} color="#36d7b7" />}
+  return (
+    <div className="relative min-h-screen bg-black text-white overflow-hidden flex flex-col gap-8 p-4 sm:p-6 md:p-10">
+      {(loading || loadingClicks) && <BarLoader width="100%" color="#FF5555" />}
 
-    <div className='grid grid-cols-2 gap-4'>
-      <Card>
-        <CardHeader>
-          <CardTitle>Links Created</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p>{urls?.length}</p>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>Total Clicks</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p>{clicks?.length || 0}</p>
-        </CardContent>
-      </Card>
-    </div>
-
-    <div className='flex justify-between'>
-      <h1 className='text-4xl font-extrabold'>
-        My Links
-      </h1>
-      <CreateLink />
-    </div>
-
-    <div className='relative'>
-      <Input
-        type='text'
-        placeholder='Filter links...'
-        className=''
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
+      {/* Background glow */}
+      <div className="absolute inset-0 pointer-events-none 
+  bg-[radial-gradient(ellipse_at_top,_rgba(255,59,107,0.14),_transparent_70%)]
+  blur-xl opacity-70"
       />
-      <Filter className='absolute top-2 right-2 p-1' />
-    </div>
-    {
-      error && <Error message={error.message} />
-    }
-    {
-      (filterUrls || []).map((url, id) => {
-        return <LinkCard key={id} url={url} fetchUrls={fnUrls} />
-      })
-    }
-  </div>
-}
+      <div className="absolute inset-0 -z-10 pointer-events-none 
+  bg-gradient-to-b from-zinc-950 via-zinc-900 to-zinc-950"
+      />
 
-export default Dashboard
+      {/* Stats Section */}
+      <div className={`grid grid-cols-1 sm:grid-cols-2 gap-6 ${isEmpty ? 'opacity-50' : ''}`}>
+        {/* Links Created */}
+        <Card className="rounded-2xl bg-zinc-900/70 backdrop-blur border border-white/5 p-6 hover:border-[#ff3b6b]/40 transition">
+          <CardHeader className="flex items-center gap-3 relative z-10">
+            <LinkIcon className="w-5 h-5 text-destructive" />
+            <CardTitle className="text-lg font-bold">Links Created</CardTitle>
+          </CardHeader>
+          <CardContent className="relative z-10">
+            <p className="text-2xl font-extrabold text-destructive">{urls?.length || '--'}</p>
+          </CardContent>
+        </Card>
+
+        {/* Total Clicks */}
+        <Card className="rounded-2xl bg-zinc-900/70 backdrop-blur border border-white/5 p-6 hover:border-[#ff3b6b]/40 transition">
+          <CardHeader className="flex items-center gap-3 relative z-10">
+            <MousePointerClick className="w-5 h-5 text-destructive" />
+            <CardTitle className="text-lg font-bold">Total Clicks</CardTitle>
+          </CardHeader>
+          <CardContent className="relative z-10">
+            <p className="text-2xl font-extrabold text-destructive">{clicks?.length || '--'}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Header + Create Link */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <h1 className="text-3xl sm:text-4xl font-extrabold text-white">
+          {isEmpty ? 'Welcome!' : 'My Links'}
+        </h1>
+        <CreateLink />
+      </div>
+
+      {/* Search input */}
+      {!isEmpty && (
+        <div className="relative max-w-md w-full">
+          <Input
+            type="text"
+            placeholder="Filter links..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-4 pr-10 text-sm sm:text-base bg-zinc-800 border border-white/20 placeholder:text-muted-foreground text-white"
+          />
+          <Filter className="absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground" />
+        </div>
+      )}
+
+      {/* Error */}
+      {error && <Error message={error.message} />}
+
+      {/* Empty State */}
+      {isEmpty ? (
+        <div className="flex flex-col items-center justify-center gap-6 p-8 bg-zinc-900/60 rounded-2xl border border-white/10 text-center mt-10">
+          <p className="text-white text-xl font-semibold">
+            You haven’t created any links yet.
+          </p>
+          <p className="text-muted-foreground">
+            Start by creating your first link and track clicks in real-time.
+          </p>
+          <CreateLink />
+        </div>
+      ) : (
+        // Links Grid
+        <div className="grid grid-cols-1 gap-6">
+          {filterUrls.slice().reverse().map((url) => (
+            <LinkCard key={url.id} url={url} fetchUrls={fnUrls} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Dashboard;

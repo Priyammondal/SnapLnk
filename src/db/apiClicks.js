@@ -27,7 +27,7 @@ export async function getClicksForUrl(url_id) {
 
 const parser = new UAParser();
 
-export const storeClicks = async ({ id, originalUrl }) => {
+export const storeClicks = async (id) => {
     try {
         const res = parser.getResult();
         const device = res.type || 'desktop';
@@ -41,9 +41,11 @@ export const storeClicks = async ({ id, originalUrl }) => {
             country: country,
             device: device,
         })
-        window.location.href = originalUrl;
+        return Promise.resolve("Click Captured");
     } catch (err) {
         console.error("Error storing click data:", err);
+        return Promise.reject("Click is not captured");
+
     }
 }
 

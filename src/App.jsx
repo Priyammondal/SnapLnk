@@ -9,6 +9,13 @@ import Link from './pages/Link'
 import RedirectLink from './pages/RedirectLink'
 import { UrlProvider } from './Context'
 import RequireAuth from './components/RequireAuth'
+import AuthLayout from './layouts/AuthLayout'
+import Features from './pages/Features'
+import Pricing from './pages/Pricing'
+import About from './pages/About'
+import Privacy from './pages/Privacy'
+import Terms from './pages/Terms'
+import NotFound from './pages/NotFound'
 
 const router = createBrowserRouter([
   {
@@ -19,22 +26,51 @@ const router = createBrowserRouter([
         element: <LandingPage />
       },
       {
+        path: '/features',
+        element: <Features />
+      },
+      {
+        path: '/pricing',
+        element: <Pricing />
+      },
+      {
+        path: '/about',
+        element: <About />
+      },
+      {
+        path: '/privacy',
+        element: <Privacy />
+      },
+      {
+        path: '/terms',
+        element: <Terms />
+      },
+      {
         path: '/dashboard',
         element: <RequireAuth><Dashboard /></RequireAuth>
+      },
+      {
+        path: '/link/:id',
+        element: <RequireAuth><Link /></RequireAuth>
+      }
+    ]
+  },
+  {
+    element: <AuthLayout />,
+    children: [
+      {
+        path: '/:id',
+        element: <RedirectLink />
       },
       {
         path: '/auth',
         element: <Auth />
       },
-      {
-        path: '/link/:id',
-        element: <RequireAuth><Link /></RequireAuth>
-      },
-      {
-        path: '/:id',
-        element: <RedirectLink />
-      }
     ]
+  },
+  {
+    path: '*',
+    element: <NotFound />
   }
 ])
 

@@ -1,8 +1,15 @@
 import React from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import Logo from '@/assets/logo1.png'
+import Logo from '@/assets/logo.png'
 import { Button } from './ui/button'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu'
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger
+} from './ui/dropdown-menu'
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
 import { LinkIcon, LogOut } from 'lucide-react'
 import { UrlState } from '@/Context'
@@ -11,45 +18,94 @@ import { logout } from '@/db/apiAuth'
 import { BarLoader } from 'react-spinners'
 
 const Header = () => {
-    const navigate = useNavigate();
-    const { user, fetchUser } = UrlState();
-    const { loading, fn: fnLogout } = useFetch(logout);
+    const navigate = useNavigate()
+    const { user, fetchUser } = UrlState()
+    const { loading, fn: fnLogout } = useFetch(logout)
 
     return (
         <>
-            <nav className='py-4 flex justify-between items-center pe-8'>
-                <Link to="/">
-                    <img src={Logo} className='h-16' alt="SnapLnk Logo" />
-                </Link>
+            {/* Loader (fixed, no layout shift) */}
+            {loading && (
+                <div className="fixed top-0 left-0 w-full z-50">
+                    <BarLoader width="100%" color="#FF5555" />
+                </div>
+            )}
 
-                <div>
-                    {
-                        !user ?
-                            <Button onClick={() => navigate('/auth')}>Login</Button>
-                            : <DropdownMenu>
-                                <DropdownMenuTrigger className="w-10 rounded-full overflow-hidden outline-none">
-                                    <Avatar>
-                                        <AvatarImage src={user?.user_metadata?.profile_pic} className="object-contain" />
-                                        <AvatarFallback>PM</AvatarFallback>
+            <header className="sticky top-0 z-40 backdrop-blur bg-background/80 border-b border-white/10">
+                <nav className="mx-auto max-w-7xl px-4 sm:px-6 h-16 flex items-center justify-between">
+                    {/* Logo */}
+                    <Link to="/" className="flex items-center gap-2">
+                        <img
+                            src={Logo}
+                            alt="SnapLnk Logo"
+                            className="h-7 sm:h-8 w-auto object-contain"
+                        />
+                        <h3 className="text-xl font-bold tracking-tight">
+                            Snap<span className="text-destructive">Lnk</span>
+                        </h3>
+                    </Link>
+
+                    {/* Right Section */}
+                    <div className="flex items-center gap-3">
+                        {!user ? (
+                            <Button
+                                size="sm"
+                                className="px-4"
+                                onClick={() => navigate('/auth')}
+                            >
+                                Login
+                            </Button>
+                        ) : (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger className="rounded-full outline-none focus:ring-2 focus:ring-ring">
+                                    <Avatar className="h-9 w-9">
+                                        <AvatarImage
+                                            src={user?.user_metadata?.profile_pic}
+                                            className="object-cover"
+                                        />
+                                        <AvatarFallback>
+                                            {user?.user_metadata?.name?.[0] ?? 'U'}
+                                        </AvatarFallback>
                                     </Avatar>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent>
-                                    <DropdownMenuLabel>{user?.user_metadata?.name}</DropdownMenuLabel>
+
+                                <DropdownMenuContent
+                                    align="end"
+                                    className="w-48"
+                                >
+                                    <DropdownMenuLabel className="truncate">
+                                        {user?.user_metadata?.name}
+                                    </DropdownMenuLabel>
+
                                     <DropdownMenuSeparator />
-                                    <DropdownMenuItem>
-                                        <Link to="/dashboard" className='flex'><LinkIcon className='mr-2 h-4 w-4' /><span>My Links</span></Link>
+
+                                    <DropdownMenuItem asChild>
+                                        <Link to="/dashboard" className="flex items-center gap-2">
+                                            <LinkIcon className="h-4 w-4" />
+                                            <span>My Links</span>
+                                        </Link>
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem className="text-red-400"><LogOut className='mr-2 h-4 w-4' /> <span onClick={() => {
-                                        fnLogout().then(() => { fetchUser(); navigate('/'); });
-                                    }}>Logout</span></DropdownMenuItem>
+
+                                    <DropdownMenuSeparator />
+
+                                    <DropdownMenuItem
+                                        className="text-red-400 focus:text-red-400"
+                                        onClick={() => {
+                                            fnLogout().then(() => {
+                                                fetchUser()
+                                                navigate('/')
+                                            })
+                                        }}
+                                    >
+                                        <LogOut className="h-4 w-4 mr-2" />
+                                        Logout
+                                    </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
-                    }
-                </div>
-            </nav>
-            {
-                loading && <BarLoader className='mb-4' width={"100%"} color="#36d7b7" />
-            }
+                        )}
+                    </div>
+                </nav>
+            </header>
         </>
     )
 }

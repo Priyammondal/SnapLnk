@@ -1,0 +1,14 @@
+* {
+    font-family:
+        "Segoe UI",
+        /* Windows, modern and rounded */
+        "Roboto",
+        /* fallback, widely installed */
+        "Helvetica Neue",
+        /* macOS */
+        Arial,
+        /* fallback */
+        "Noto Sans",
+        /* fallback on some systems */
+        sans-serif;
+}

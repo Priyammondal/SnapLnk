@@ -1,19 +1,15 @@
 import Footer from '@/components/Footer'
 import Header from '@/components/Header'
-import useScrollToTop from '@/hooks/useScrollToTop'
 import React from 'react'
 import { Outlet } from 'react-router-dom'
 
-const AppLayout = () => {
-    useScrollToTop();
+const AuthLayout = () => {
     return (
-        <main className='min-h-screen'>
-            <Header />
+        <main>
             <Outlet />
-            <Footer />
         </main>
 
     )
 }
 
-export default AppLayout
+export default AuthLayout

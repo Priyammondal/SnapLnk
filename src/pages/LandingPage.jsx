@@ -38,8 +38,8 @@ const LandingPage = () => {
 
 
       {/* HERO */}
-      <section className="relative mx-auto max-w-4xl px-4 pt-28 text-center">
-        <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight leading-tight">
+      <section className="relative mx-auto max-w-4xl px-4 pt-20 sm:pt-28 text-center">
+        <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight leading-snug sm:leading-tight">
           Short links.{" "}
           <span className="text-destructive block sm:inline">
             Big impact.
@@ -75,7 +75,7 @@ const LandingPage = () => {
       </section>
 
       {/* HOW IT WORKS */}
-      <section className="mx-auto max-w-5xl px-4 mt-28 grid gap-8 sm:grid-cols-3">
+      <section className="mx-auto max-w-5xl px-4 mt-16 sm:mt-28 grid gap-8 sm:grid-cols-3">
         {[
           {
             step: "01",
@@ -111,7 +111,7 @@ const LandingPage = () => {
       </section>
 
       {/* FAQ */}
-      <section className="mx-auto max-w-3xl px-4 py-28 z-10">
+      <section className="mx-auto max-w-3xl py-16 sm:py-28 z-10">
         <h2 className="text-3xl font-bold text-center mb-12">
           Frequently Asked Questions
         </h2>

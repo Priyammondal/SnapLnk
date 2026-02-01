@@ -27,19 +27,24 @@ export async function getClicksForUrl(url_id) {
 
 const parser = new UAParser();
 
+const getDeviceType = (ua) => {
+    if (ua.device?.type) return ua.device.type;
+    return "desktop";
+};
+
 export const storeClicks = async (id) => {
     try {
         const res = parser.getResult();
-        const device = res.device.type || "unknown";
+        const device = getDeviceType(res);
 
         const response = await fetch("https://ipapi.co/json");
         const { city, country_name: country } = await response.json();
 
         await supabase.from('clicks').insert({
             url_id: id,
-            city: city,
-            country: country,
-            device: device,
+            city,
+            country,
+            device,
         })
         return Promise.resolve("Click Captured");
     } catch (err) {

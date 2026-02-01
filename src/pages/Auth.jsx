@@ -7,16 +7,22 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
-  const longUrl = searchParams.get('createNew');
+  const [longUrl] = useState(() => searchParams.get('createNew'));
   const navigate = useNavigate();
   const { isAuthenticated, loading } = UrlState();
   const [activeTab, setActiveTab] = useState('login');
 
   useEffect(() => {
-    if (!loading && isAuthenticated) {
-      navigate(`/dashboard?${longUrl ? `createNew=${longUrl}` : ''}`);
+    if (loading) return;
+
+    if (isAuthenticated) {
+      navigate(
+        `/dashboard${longUrl ? `?createNew=${longUrl}` : ''}`,
+        { replace: true }
+      );
     }
-  }, [isAuthenticated, loading, navigate, longUrl]);
+  }, [isAuthenticated, loading, longUrl]);
+
 
   return (
     <div className="min-h-screen flex items-center justify-center relative px-4 sm:px-6 bg-zinc-950 overflow-hidden">
@@ -45,13 +51,13 @@ const Auth = () => {
           <TabsList className="flex w-full rounded-lg bg-white/10 p-1 gap-1">
             <TabsTrigger
               value="login"
-              className="flex-1 text-center text-white rounded-lg py-2 text-sm sm:text-base data-[state=active]:bg-destructive data-[state=active]:shadow-sm transition-all"
+              className="flex-1 text-center text-white rounded-lg py-2 text-sm sm:text-base data-[state=active]:bg-destructive data-[state=active]:shadow-sm transition-all cursor-pointer"
             >
               Login
             </TabsTrigger>
             <TabsTrigger
               value="signup"
-              className="flex-1 text-center text-white rounded-lg py-2 text-sm sm:text-base data-[state=active]:bg-destructive data-[state=active]:shadow-sm transition-all"
+              className="flex-1 text-center text-white rounded-lg py-2 text-sm sm:text-base data-[state=active]:bg-destructive data-[state=active]:shadow-sm transition-all cursor-pointer"
             >
               Signup
             </TabsTrigger>

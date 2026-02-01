@@ -1,4 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  forwardRef,
+  useImperativeHandle,
+} from 'react';
 import {
   Dialog,
   DialogContent,
@@ -19,19 +25,32 @@ import useFetch from '@/hooks/useFetch';
 import { createUrl } from '@/db/apiUrls';
 import { BeatLoader } from 'react-spinners';
 
-const CreateLink = () => {
+const CreateLink = forwardRef((props, ref) => {
   const { user } = UrlState();
   const navigate = useNavigate();
-  const ref = useRef(null);
+  const qrRef = useRef(null);
   const [searchParams, setSearchParams] = useSearchParams();
+
   const longLink = searchParams.get("createNew") || "";
 
+  const [open, setOpen] = useState(!!longLink);
   const [errors, setErrors] = useState({});
   const [formValues, setFormValues] = useState({
     title: "",
     longUrl: longLink ?? "",
     customUrl: "",
   });
+
+  useImperativeHandle(ref, () => ({
+    open: () => setOpen(true),
+  }));
+
+  useEffect(() => {
+    if (longLink) {
+      setOpen(true);
+      setFormValues((prev) => ({ ...prev, longUrl: longLink }));
+    }
+  }, [longLink]);
 
   const schema = yup.object().shape({
     title: yup.string().required("Title is required"),
@@ -48,11 +67,13 @@ const CreateLink = () => {
     });
   };
 
-  const { loading, error: createUrlError, data, fn: fnCreateUrl } = useFetch(createUrl, { ...formValues, userId: user.id });
+  const { loading, error: createUrlError, data, fn: fnCreateUrl } =
+    useFetch(createUrl, { ...formValues, userId: user.id });
 
   useEffect(() => {
     if (!createUrlError && data) {
       setSearchParams({});
+      setOpen(false);
       navigate(`/link/${data[0].id}`);
     }
   }, [createUrlError, data]);
@@ -61,12 +82,12 @@ const CreateLink = () => {
     setErrors({});
     try {
       await schema.validate(formValues, { abortEarly: false });
-      const canvas = ref.current?.canvasRef?.current;
-      const blob = await new Promise(resolve => canvas.toBlob(resolve));
+      const canvas = qrRef.current?.canvasRef?.current;
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve));
       await fnCreateUrl(blob);
     } catch (err) {
       const newErrors = {};
-      err?.inner?.forEach(e => {
+      err?.inner?.forEach((e) => {
         newErrors[e.path] = e.message;
       });
       setErrors(newErrors);
@@ -74,79 +95,75 @@ const CreateLink = () => {
   };
 
   return (
-    <Dialog defaultOpen={longLink} onOpenChange={(res) => {
-      if (!res) setSearchParams({});
-    }}>
-      <DialogTrigger>
+    <Dialog
+      open={open}
+      onOpenChange={(res) => {
+        setOpen(res);
+        if (!res) setSearchParams({});
+      }}
+    >
+      <DialogTrigger asChild>
         <Button variant="destructive" className="cursor-pointer">Create New Link</Button>
       </DialogTrigger>
 
       <DialogContent className="sm:max-w-lg w-full p-6 sm:p-8 bg-zinc-900/80 backdrop-blur-md rounded-2xl border border-white/10 shadow-lg">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-white text-center sm:text-left mb-4">Create New Link</DialogTitle>
+          <DialogTitle className="text-2xl font-bold text-white mb-4">
+            Create New Link
+          </DialogTitle>
         </DialogHeader>
 
-        {/* QR Code Preview */}
         {formValues.longUrl && (
           <div className="flex justify-center mb-6">
-            <QRCode value={formValues.longUrl} size={200} ref={ref} className="rounded-lg border border-white/20 shadow-md" />
+            <QRCode
+              value={formValues.longUrl}
+              size={200}
+              ref={qrRef}
+              className="rounded-lg border border-white/20"
+            />
           </div>
         )}
 
-        {/* Title */}
-        <div className="mb-4">
-          <Input
-            type="text"
-            id="title"
-            placeholder="Short Link's Title"
-            value={formValues.title}
-            onChange={handleChange}
-            className="w-full bg-zinc-800 border border-white/20 placeholder:text-muted-foreground text-white focus:ring-destructive focus:border-destructive rounded-lg"
-          />
-          {errors?.title && <Error message={errors.title} />}
-        </div>
+        <Input
+          id="title"
+          placeholder="Short Link's Title"
+          value={formValues.title}
+          onChange={handleChange}
+        />
+        {errors?.title && <Error message={errors.title} />}
 
-        {/* Long URL */}
-        <div className="mb-4">
-          <Input
-            type="text"
-            id="longUrl"
-            placeholder="Enter Your Long URL"
-            value={formValues.longUrl}
-            onChange={handleChange}
-            className="w-full bg-zinc-800 border border-white/20 placeholder:text-muted-foreground text-white focus:ring-destructive focus:border-destructive rounded-lg"
-          />
-          {errors?.longUrl && <Error message={errors.longUrl} />}
-        </div>
+        <Input
+          id="longUrl"
+          placeholder="Enter Your Long URL"
+          value={formValues.longUrl}
+          onChange={handleChange}
+          className="mt-3"
+        />
+        {errors?.longUrl && <Error message={errors.longUrl} />}
 
-        {/* Custom URL */}
-        <div className="mb-4 flex flex-col sm:flex-row sm:items-center gap-2">
-          <Card className="p-2 text-white bg-zinc-800 border border-white/20 flex-shrink-0">snaplnk.netlify.app</Card>
-          <span className="text-white">/</span>
+        <div className="flex items-center gap-2 mt-3">
+          <Card className="p-2 bg-zinc-800 text-white">
+            snaplnk.netlify.app
+          </Card>
+          /
           <Input
-            type="text"
             id="customUrl"
             placeholder="Custom Link (Optional)"
             value={formValues.customUrl}
             onChange={handleChange}
-            className="flex-1 bg-zinc-800 border border-white/20 placeholder:text-muted-foreground text-white focus:ring-destructive focus:border-destructive rounded-lg"
           />
         </div>
+
         {createUrlError && <Error message={createUrlError.message} />}
 
-        <DialogFooter className="sm:justify-end mt-4">
-          <Button
-            disabled={loading}
-            variant="destructive"
-            onClick={createNewLink}
-            className="flex items-center justify-center gap-2 cursor-pointer"
-          >
-            {loading ? <BeatLoader size={10} color='white' /> : "Create"}
+        <DialogFooter className="mt-4">
+          <Button onClick={createNewLink} disabled={loading} className="cursor-pointer">
+            {loading ? <BeatLoader size={10} color="white" /> : "Create"}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
-};
+});
 
 export default CreateLink;

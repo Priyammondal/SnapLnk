@@ -17,6 +17,7 @@ import useFetch from '@/hooks/useFetch';
 import { signup } from '@/db/apiAuth';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { UrlState } from '@/Context';
+import Avatar from "../assets/avatar.webp"
 
 
 const Signup = () => {
@@ -26,40 +27,63 @@ const Signup = () => {
     password: '',
     profile_pic: null,
   });
-  const [errors, setErrors] = useState([]);
+  const [errors, setErrors] = useState({});
   const { data, loading, error, fn: fnSignup } = useFetch(signup, formData)
   const { fetchUser } = UrlState();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const longUrl = searchParams.get("createNew");
-
-  console.log("data-->", data)
+  const [preview, setPreview] = useState(null);
+  const [defaultAvatar, setDefaultAvatar] = useState(Avatar);
 
   useEffect(() => {
     if (data && error == null) {
-      console.log('Login Successful', data);
-      navigate(`/dashboard?${longUrl ? `createNew=${longUrl}` : ''}`);
+      navigate(
+        `/dashboard${longUrl ? `?createNew=${longUrl}` : ''}`,
+        { replace: true }
+      );
       fetchUser();
+    } else {
+      setErrors({ user: "User Already Registered!" });
+      setTimeout(() => {
+        setErrors({});
+      }, 3000)
     }
   }, [data, error, navigate, longUrl])
 
 
   function handleInputChange(e) {
     const { name, value, files } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: files ? files[0] : value
-    }))
+
+    if (name === "profile_pic" && files?.[0]) {
+      setFormData(prev => ({
+        ...prev,
+        profile_pic: files[0]
+      }));
+      setPreview(URL.createObjectURL(files[0]));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
   }
 
+  useEffect(() => {
+    return () => {
+      if (preview) URL.revokeObjectURL(preview);
+    }
+  }, [preview]);
+
+
   const handleSignup = async () => {
-    setErrors([]);
+    setErrors({});
     try {
       const schema = Yup.object().shape({
         name: Yup.string().required('Name is required'),
         email: Yup.string().email('Invalid Email').required('Email is required'),
         password: Yup.string().min(6, 'Password must be at least 6 characters').required('Password is required'),
-        profile_pic: Yup.mixed().required('Profile picture is required'),
+        profile_pic: Yup.mixed().nullable(),
       })
       await schema.validate(formData, { abortEarly: false });
       await fnSignup();
@@ -79,7 +103,7 @@ const Signup = () => {
         <CardDescription>
           Create a new accout if you haven't already
         </CardDescription>
-        {error && <Error message={errors.password} />}
+        {error && <Error message={errors.user} />}
       </CardHeader>
       <CardContent className="space-y-2">
         <div className="space-y-1">
@@ -95,13 +119,47 @@ const Signup = () => {
           {errors.password && <Error message={errors.password} />}
         </div>
         <div className="space-y-1">
-          <Input autocomplete="off" name="profile_pic" type="file" accept="image/*" onChange={handleInputChange} />
-          {errors.profile_pic && <Error message={errors.profile_pic} />}
+          <div className="flex items-center gap-4">
+            {/* Avatar preview */}
+            <label htmlFor="profile_pic" className="cursor-pointer group">
+              <div className="h-10 w-10 rounded-full border-2 border-dashed border-zinc-400 flex items-center justify-center overflow-hidden group-hover:border-primary transition">
+                {preview ? (
+                  <img
+                    src={preview}
+                    alt="Profile Preview"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <img
+                    src={
+                      defaultAvatar
+                    }
+                    alt="Default Avatar"
+                    className="h-full w-full object-cover"
+                  />
+                )}
+              </div>
+            </label>
+
+            {/* File input text */}
+            <div className="flex-1">
+              <input
+                id="profile_pic"
+                name="profile_pic"
+                type="file"
+                accept="image/*"
+                onChange={handleInputChange}
+                className="hidden"
+              />
+              <span className="text-sm text-muted-foreground">Click avatar to upload</span>
+            </div>
+          </div>
+
         </div>
 
       </CardContent>
       <CardFooter className="flex-col gap-2">
-        <Button className="w-full" onClick={handleSignup}>{loading ? <BeatLoader size={10} color="#36d7b7" /> : 'Create Account'}</Button>
+        <Button className="w-full cursor-pointer" onClick={handleSignup}>{loading ? <BeatLoader size={10} color="#FF6467" /> : 'Create Account'}</Button>
       </CardFooter>
     </Card>
   )

@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Logo from '@/assets/logo.png'
 import { Button } from './ui/button'
@@ -11,7 +11,7 @@ import {
     DropdownMenuTrigger
 } from './ui/dropdown-menu'
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
-import { LinkIcon, LogOut } from 'lucide-react'
+import { LinkIcon, LogOut, User } from 'lucide-react'
 import { UrlState } from '@/Context'
 import useFetch from '@/hooks/useFetch'
 import { logout } from '@/db/apiAuth'
@@ -21,6 +21,14 @@ const Header = () => {
     const navigate = useNavigate()
     const { user, fetchUser } = UrlState()
     const { loading, fn: fnLogout } = useFetch(logout)
+    const [userName, setUserName] = useState(user?.user_metadata?.name || "");
+
+    useEffect(() => {
+        if (user?.user_metadata?.name) {
+            setUserName(user.user_metadata.name);
+        }
+    }, [user]);
+
 
     return (
         <>
@@ -50,21 +58,23 @@ const Header = () => {
                         {!user ? (
                             <Button
                                 size="sm"
-                                className="px-4"
+                                className="px-4 cursor-pointer"
                                 onClick={() => navigate('/auth')}
                             >
                                 Login
                             </Button>
                         ) : (
                             <DropdownMenu>
-                                <DropdownMenuTrigger className="rounded-full outline-none focus:ring-2 focus:ring-ring">
+                                <DropdownMenuTrigger className="rounded-full outline-none focus:ring-2 focus:ring-ring cursor-pointer">
                                     <Avatar className="h-9 w-9">
                                         <AvatarImage
-                                            src={user?.user_metadata?.profile_pic}
+                                            src={user?.user_metadata?.profile_pic
+                                                ? `${user.user_metadata.profile_pic}?t=${Date.now()}`
+                                                : "https://api.dicebear.com/7.x/identicon/svg"}
                                             className="object-cover"
                                         />
                                         <AvatarFallback>
-                                            {user?.user_metadata?.name?.[0] ?? 'U'}
+                                            <span className='pb-2'>{userName?.[0] ?? 'U'}</span>
                                         </AvatarFallback>
                                     </Avatar>
                                 </DropdownMenuTrigger>
@@ -74,12 +84,21 @@ const Header = () => {
                                     className="w-48"
                                 >
                                     <DropdownMenuLabel className="truncate">
-                                        {user?.user_metadata?.name}
+                                        {userName}
                                     </DropdownMenuLabel>
 
                                     <DropdownMenuSeparator />
 
-                                    <DropdownMenuItem asChild>
+                                    <DropdownMenuItem asChild className="cursor-pointer">
+                                        <Link to="/profile" className="flex items-center gap-2">
+                                            <User className="h-4 w-4" />
+                                            <span>Profile</span>
+                                        </Link>
+                                    </DropdownMenuItem>
+
+                                    <DropdownMenuSeparator />
+
+                                    <DropdownMenuItem asChild className="cursor-pointer">
                                         <Link to="/dashboard" className="flex items-center gap-2">
                                             <LinkIcon className="h-4 w-4" />
                                             <span>My Links</span>
@@ -89,7 +108,7 @@ const Header = () => {
                                     <DropdownMenuSeparator />
 
                                     <DropdownMenuItem
-                                        className="text-red-400 focus:text-red-400"
+                                        className="text-red-400 focus:text-red-400 cursor-pointer"
                                         onClick={() => {
                                             fnLogout().then(() => {
                                                 fetchUser()

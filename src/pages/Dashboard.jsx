@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import CreateLink from '@/components/CreateLink';
 import Error from '@/components/Error';
 import LinkCard from '@/components/LinkCard';
@@ -10,6 +10,7 @@ import { getUrls } from '@/db/apiUrls';
 import useFetch from '@/hooks/useFetch';
 import { Filter, Link as LinkIcon, MousePointerClick } from 'lucide-react';
 import { BarLoader } from 'react-spinners';
+import { useSearchParams } from 'react-router-dom';
 
 const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -19,6 +20,8 @@ const Dashboard = () => {
     getClicksForUrls,
     urls?.map((url) => url.id)
   );
+  const [searchParams, setSearchParams] = useSearchParams();
+  const createLinkref = useRef(null);
 
   const filterUrls = urls?.filter((url) =>
     url.title.toLowerCase().includes(searchQuery.toLowerCase())
@@ -26,13 +29,21 @@ const Dashboard = () => {
 
   useEffect(() => {
     fnUrls();
+    fnClicks();
   }, []);
+
+  useEffect(() => {
+    if (searchParams.get("create") === "new") {
+      setSearchParams({});
+      createLinkref.current?.open();
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (urls && urls.length) {
       fnClicks();
     }
-  }, [urls?.length]);
+  }, [urls]);
 
   const isEmpty = !urls || urls.length === 0;
 
@@ -42,11 +53,11 @@ const Dashboard = () => {
 
       {/* Background glow */}
       <div className="absolute inset-0 pointer-events-none 
-  bg-[radial-gradient(ellipse_at_top,_rgba(255,59,107,0.14),_transparent_70%)]
-  blur-xl opacity-70"
+        bg-[radial-gradient(ellipse_at_top,_rgba(255,59,107,0.14),_transparent_70%)]
+        blur-xl opacity-70"
       />
       <div className="absolute inset-0 -z-10 pointer-events-none 
-  bg-gradient-to-b from-zinc-950 via-zinc-900 to-zinc-950"
+        bg-gradient-to-b from-zinc-950 via-zinc-900 to-zinc-950"
       />
 
       {/* Stats Section */}
@@ -79,7 +90,7 @@ const Dashboard = () => {
         <h1 className="text-3xl sm:text-4xl font-extrabold text-white">
           {isEmpty ? 'Welcome!' : 'My Links'}
         </h1>
-        <CreateLink />
+        <CreateLink ref={createLinkref} />
       </div>
 
       {/* Search input */}

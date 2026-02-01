@@ -24,7 +24,7 @@ const Login = () => {
         email: '',
         password: ''
     });
-    const [errors, setErrors] = useState([]);
+    const [errors, setErrors] = useState({});
     const { data, loading, error, fn: fnLogin } = useFetch(login, formData)
     const { fetchUser } = UrlState();
     const navigate = useNavigate();
@@ -33,8 +33,10 @@ const Login = () => {
 
     useEffect(() => {
         if (data && error == null) {
-            console.log('Login Successful', data);
-            navigate(`/dashboard?${longUrl ? `createNew=${longUrl}` : ''}`);
+            navigate(
+                `/dashboard${longUrl ? `?createNew=${longUrl}` : ''}`,
+                { replace: true }
+            );
             fetchUser();
         }
     }, [data, error, navigate, longUrl])
@@ -49,14 +51,20 @@ const Login = () => {
     }
 
     const handleLogin = async () => {
-        setErrors([]);
+        setErrors({});
         try {
             const schema = Yup.object().shape({
                 email: Yup.string().email('Invalid Email').required('Email is required'),
                 password: Yup.string().min(6, 'Password must be at least 6 characters').required('Password is required'),
             })
             await schema.validate(formData, { abortEarly: false });
-            await fnLogin();
+            const res = await fnLogin();
+            if (!res) {
+                setErrors({ credential: "Invalid Login Credentials!" });
+                setTimeout(() => {
+                    setErrors({});
+                }, 3000)
+            }
         } catch (err) {
             const newErrors = {};
             err?.inner?.forEach((error) => {
@@ -66,6 +74,7 @@ const Login = () => {
         }
     }
 
+
     return (
         <Card className="">
             <CardHeader>
@@ -73,7 +82,7 @@ const Login = () => {
                 <CardDescription>
                     to your account if you already have one
                 </CardDescription>
-                {error && <Error message={errors.password} />}
+                {errors?.credential && <Error message={errors?.credential} />}
             </CardHeader>
             <CardContent className="space-y-2">
                 <div className="space-y-1">
@@ -86,7 +95,7 @@ const Login = () => {
                 </div>
             </CardContent>
             <CardFooter className="flex-col gap-2">
-                <Button className="w-full" onClick={handleLogin}>{loading ? <BeatLoader size={10} color="#36d7b7" /> : 'Login'}</Button>
+                <Button className="w-full cursor-pointer" onClick={handleLogin}>{loading ? <BeatLoader size={10} color="#FF6467" /> : 'Login'}</Button>
             </CardFooter>
         </Card>
     )

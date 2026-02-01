@@ -16,6 +16,7 @@ import About from './pages/About'
 import Privacy from './pages/Privacy'
 import Terms from './pages/Terms'
 import NotFound from './pages/NotFound'
+import Profile from './pages/Profile'
 
 const router = createBrowserRouter([
   {
@@ -44,6 +45,10 @@ const router = createBrowserRouter([
       {
         path: '/terms',
         element: <Terms />
+      },
+      {
+        path: '/profile',
+        element: <RequireAuth><Profile /></RequireAuth>
       },
       {
         path: '/dashboard',

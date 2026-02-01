@@ -8,11 +8,18 @@ const RequireAuth = ({ children }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading && !isAuthenticated) navigate('/auth');
+    if (loading) return;
+
+    if (!isAuthenticated) {
+      navigate('/auth', { replace: true });
+    }
   }, [isAuthenticated, loading, navigate]);
 
-  if (loading) return <BarLoader width={"100%"} color="#36d7b7" />
-  if (isAuthenticated) return children;
-}
+  if (loading) return <BarLoader width="100%" color="#36d7b7" />;
+  if (!isAuthenticated) return null;
+
+  return children;
+};
+
 
 export default RequireAuth;

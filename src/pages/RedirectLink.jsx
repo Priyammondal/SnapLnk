@@ -1,29 +1,40 @@
 import { storeClicks } from '@/db/apiClicks';
 import { getLongUrl } from '@/db/apiUrls';
 import useFetch from '@/hooks/useFetch';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import NotFound from './NotFound';
 
 const RedirectLink = () => {
   const { id } = useParams();
   const { loading, data, fn: fnGetLongUrl } = useFetch(getLongUrl, id);
+  const [clickCaptured, setClickCaptured] = useState(false);
 
   useEffect(() => {
-    fnGetLongUrl();
-  }, []);
+    if (id) {
+      fnGetLongUrl();
+    }
+  }, [id]);
 
   useEffect(() => {
     if (!loading && data) {
       storeClicks(data.id)
         .then(() => {
-          window.location.replace(data.original_url);
+          setTimeout(() => {
+            // setClickCaptured(true);
+          }, 2000)
         })
         .catch(() => { });
     }
-  }, [loading]);
+  }, [loading, data]);
 
-  if (loading) {
+  useEffect(() => {
+    if (clickCaptured) {
+      window.location.replace(data.original_url);
+    }
+  }, [clickCaptured, data])
+
+  if (loading && !clickCaptured) {
     return (
       <div className="relative min-h-screen overflow-hidden">
         {/* Background glow */}

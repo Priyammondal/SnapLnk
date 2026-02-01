@@ -68,7 +68,7 @@ const LinkCard = ({ url, fetchUrls }) => {
                                 e.preventDefault();
                                 navigator.clipboard.writeText(shortLink)
                             }}
-                            className="p-2"
+                            className="p-2 cursor-pointer"
                         >
                             <Copy />
                         </Button>
@@ -76,14 +76,14 @@ const LinkCard = ({ url, fetchUrls }) => {
                             e.stopPropagation();
                             e.preventDefault();
                             handleDownload();
-                        }} className="p-2">
+                        }} className="p-2 cursor-pointer">
                             <Download />
                         </Button>
                         <Button variant="ghost" onClick={(e) => {
                             e.stopPropagation();
                             e.preventDefault();
                             handleDelete();
-                        }} className="p-2">
+                        }} className="p-2 cursor-pointer">
                             {loadingDelete ? <BeatLoader size={6} color="white" /> : <Trash />}
                         </Button>
                     </div>

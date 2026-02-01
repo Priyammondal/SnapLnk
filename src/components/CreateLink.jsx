@@ -22,16 +22,18 @@ import { Card } from './ui/card';
 import * as yup from 'yup';
 import QRCode from 'react-qrcode-logo';
 import useFetch from '@/hooks/useFetch';
-import { createUrl } from '@/db/apiUrls';
+import { createUrl, getUrlById, getUrls, updateUrl } from '@/db/apiUrls';
 import { BeatLoader } from 'react-spinners';
 
 const CreateLink = forwardRef((props, ref) => {
-  const { user } = UrlState();
+  const { user, setUrls } = UrlState();
   const navigate = useNavigate();
   const qrRef = useRef(null);
   const [searchParams, setSearchParams] = useSearchParams();
-
   const longLink = searchParams.get("createNew") || "";
+
+  const editId = searchParams.get("edit");
+  const isEdit = Boolean(editId);
 
   const [open, setOpen] = useState(!!longLink);
   const [errors, setErrors] = useState({});
@@ -40,17 +42,41 @@ const CreateLink = forwardRef((props, ref) => {
     longUrl: longLink ?? "",
     customUrl: "",
   });
+  const [existingUrl, setExistingUrl] = useState(null);
 
   useImperativeHandle(ref, () => ({
     open: () => setOpen(true),
   }));
 
   useEffect(() => {
+    if (!isEdit) return;
+
+    const fetchUrl = async () => {
+      const data = await getUrlById(editId);
+      if (data) {
+        setFormValues({
+          title: data.title,
+          longUrl: data.original_url,
+          customUrl: data.custom_url || "",
+        });
+
+        setExistingUrl(data);
+      }
+    };
+
+    fetchUrl();
+  }, [editId]);
+
+
+  useEffect(() => {
     if (longLink) {
       setOpen(true);
       setFormValues((prev) => ({ ...prev, longUrl: longLink }));
     }
-  }, [longLink]);
+    if (isEdit) {
+      setOpen(true);
+    }
+  }, [longLink, isEdit]);
 
   const schema = yup.object().shape({
     title: yup.string().required("Title is required"),
@@ -69,6 +95,13 @@ const CreateLink = forwardRef((props, ref) => {
 
   const { loading, error: createUrlError, data, fn: fnCreateUrl } =
     useFetch(createUrl, { ...formValues, userId: user.id });
+
+  const { fn: fnUpdateUrl } = useFetch(updateUrl)
+  const { data: newUrls, fn: fnUrls } = useFetch(getUrls, user.id);
+
+  useEffect(() => {
+    setUrls(newUrls);
+  }, [newUrls])
 
   useEffect(() => {
     if (!createUrlError && data) {
@@ -94,6 +127,48 @@ const CreateLink = forwardRef((props, ref) => {
     }
   };
 
+  const updateLink = async () => {
+    setErrors({});
+
+    try {
+      await schema.validate(formValues, { abortEarly: false });
+
+      const canvas = qrRef.current?.canvasRef?.current;
+      const blob = await new Promise((r) => canvas.toBlob(r));
+      await fnUpdateUrl(
+        {
+          id: existingUrl.id,
+          title: formValues.title,
+          longUrl: formValues.longUrl,
+          customUrl: formValues.customUrl,
+          userId: user.id,
+          oldQrPath: existingUrl.qr_path,
+          oldShortUrl: existingUrl.short_url,
+        },
+        blob
+      );
+
+      setSearchParams({});
+      setOpen(false);
+      fnUrls();
+    } catch (err) {
+      const newErrors = {};
+      err?.inner?.forEach((e) => {
+        newErrors[e.path] = e.message;
+      });
+      setErrors(newErrors);
+    }
+  };
+
+
+  const handleSubmit = async () => {
+    if (isEdit) {
+      await updateLink();
+    } else {
+      await createNewLink();
+    }
+  };
+
   return (
     <Dialog
       open={open}
@@ -109,7 +184,7 @@ const CreateLink = forwardRef((props, ref) => {
       <DialogContent className="sm:max-w-lg w-full p-6 sm:p-8 bg-zinc-900/80 backdrop-blur-md rounded-2xl border border-white/10 shadow-lg">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-white mb-4">
-            Create New Link
+            {isEdit ? "Edit Link" : "Create New Link"}
           </DialogTitle>
         </DialogHeader>
 
@@ -157,8 +232,8 @@ const CreateLink = forwardRef((props, ref) => {
         {createUrlError && <Error message={createUrlError.message} />}
 
         <DialogFooter className="mt-4">
-          <Button onClick={createNewLink} disabled={loading} className="cursor-pointer">
-            {loading ? <BeatLoader size={10} color="white" /> : "Create"}
+          <Button onClick={handleSubmit} disabled={loading} className="cursor-pointer">
+            {loading ? <BeatLoader size={10} color="white" /> : isEdit ? "Save Changes" : "Create"}
           </Button>
         </DialogFooter>
       </DialogContent>

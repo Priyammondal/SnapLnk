@@ -14,8 +14,8 @@ import { useSearchParams } from 'react-router-dom';
 
 const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const { user } = UrlState();
-  const { loading, error, data: urls, fn: fnUrls } = useFetch(getUrls, user.id);
+  const { user, urls, setUrls } = UrlState();
+  const { loading, error, data, fn: fnUrls } = useFetch(getUrls, user.id);
   const { loading: loadingClicks, data: clicks, fn: fnClicks } = useFetch(
     getClicksForUrls,
     urls?.map((url) => url.id)
@@ -26,6 +26,10 @@ const Dashboard = () => {
   const filterUrls = urls?.filter((url) =>
     url.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  useEffect(() => {
+    setUrls(data)
+  }, [data])
 
   useEffect(() => {
     fnUrls();
@@ -125,7 +129,7 @@ const Dashboard = () => {
         // Links Grid
         <div className="grid grid-cols-1 gap-6">
           {filterUrls.slice().reverse().map((url) => (
-            <LinkCard key={url.id} url={url} fetchUrls={fnUrls} />
+            <LinkCard key={url.id} url={url} fetchUrls={fnUrls} onEdit={() => { createLinkref.current?.open(); }} />
           ))}
         </div>
       )}

@@ -21,7 +21,7 @@ const RedirectLink = () => {
       storeClicks(data.id)
         .then(() => {
           setTimeout(() => {
-            // setClickCaptured(true);
+            setClickCaptured(true);
           }, 2000)
         })
         .catch(() => { });

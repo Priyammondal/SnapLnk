@@ -6,7 +6,7 @@ import { UrlState } from '@/Context';
 import { getClicksForUrl } from '@/db/apiClicks';
 import { deleteUrl, getUrl } from '@/db/apiUrls';
 import useFetch from '@/hooks/useFetch';
-import { Copy, Download, Link as LinkIcon, Trash } from 'lucide-react';
+import { Copy, Download, Link as LinkIcon, Pencil, Trash } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { BarLoader, BeatLoader } from 'react-spinners';
 
@@ -14,7 +14,6 @@ const Link = () => {
   const { id } = useParams();
   const { user } = UrlState();
   const navigate = useNavigate();
-
   const { loading, data: url, error, fn } = useFetch(getUrl, { id, user_id: user?.id });
   const { loading: loadingStats, data: stats, fn: fnStats } = useFetch(getClicksForUrl, id);
   const { loading: loadingDelete, fn: fnDelete } = useFetch(deleteUrl, id);
@@ -36,6 +35,10 @@ const Link = () => {
     anchor.click();
     document.body.removeChild(anchor);
   };
+
+  const handleEdit = () => {
+    navigate(`/dashboard?edit=${url.id}`)
+  }
 
   const handleDelete = () => fnDelete().then(() => navigate('/dashboard'));
 
@@ -85,6 +88,9 @@ const Link = () => {
               </Button>
               <Button variant="ghost" onClick={handleDownload}>
                 <Download />
+              </Button>
+              <Button variant="ghost" onClick={handleEdit}>
+                <Pencil />
               </Button>
               <Button variant="ghost" onClick={handleDelete}>
                 {loadingDelete ? <BeatLoader size={5} color="white" /> : <Trash />}

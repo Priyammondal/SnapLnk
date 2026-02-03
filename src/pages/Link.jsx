@@ -83,16 +83,16 @@ const Link = () => {
 
             {/* Action Buttons */}
             <div className="flex gap-3 mt-2 flex-wrap">
-              <Button variant="ghost" onClick={() => navigator.clipboard.writeText(`https://snaplnk.netlify.app/${shortLink}`)}>
+              <Button className="cursor-pointer" variant="ghost" onClick={() => navigator.clipboard.writeText(`https://snaplnk.netlify.app/${shortLink}`)}>
                 <Copy />
               </Button>
-              <Button variant="ghost" onClick={handleDownload}>
+              <Button className="cursor-pointer" variant="ghost" onClick={handleDownload}>
                 <Download />
               </Button>
-              <Button variant="ghost" onClick={handleEdit}>
+              <Button className="cursor-pointer" variant="ghost" onClick={handleEdit}>
                 <Pencil />
               </Button>
-              <Button variant="ghost" onClick={handleDelete}>
+              <Button className="cursor-pointer" variant="ghost" onClick={handleDelete}>
                 {loadingDelete ? <BeatLoader size={5} color="white" /> : <Trash />}
               </Button>
             </div>

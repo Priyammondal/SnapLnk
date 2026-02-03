@@ -56,13 +56,13 @@ export async function logout() {
 }
 
 export async function getCurrentUser() {
-    const { data: session, error } = await supabase.auth.getSession(); //from local storage
+    const { data: session, error } = await supabase.auth.getSession();
     if (!session?.session) return null;
     if (error) throw new Error(error.message);
     return session.session.user;
 }
 
-export async function getCurrentUserFromDb() {
-    const res = await supabase.auth.getUser(); //from db
-    return res?.data?.user;
-}
+// export async function getCurrentUserFromDb() {
+//     const res = await supabase.auth.getUser();
+//     return res?.data?.user;
+// }

@@ -29,20 +29,20 @@ const Signup = () => {
   });
   const [errors, setErrors] = useState({});
   const { data, loading, error, fn: fnSignup } = useFetch(signup, formData)
-  const { fetchUser } = UrlState();
+  const { setUser } = UrlState();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const longUrl = searchParams.get("createNew");
   const [preview, setPreview] = useState(null);
-  const [defaultAvatar, setDefaultAvatar] = useState(Avatar);
+  const MAX_IMAGE_SIZE = 200 * 1024; // 200 KB
 
   useEffect(() => {
     if (data && error == null) {
+      setUser(data.user);
       navigate(
         `/dashboard${longUrl ? `?createNew=${longUrl}` : ''}`,
         { replace: true }
       );
-      fetchUser();
     } else {
       setErrors({ user: "User Already Registered!" });
       setTimeout(() => {
@@ -54,13 +54,18 @@ const Signup = () => {
 
   function handleInputChange(e) {
     const { name, value, files } = e.target;
-
-    if (name === "profile_pic" && files?.[0]) {
+    if (name === "profile_pic") {
+      const file = files[0];
+      if (file.size > MAX_IMAGE_SIZE) {
+        alert("Image size must be less than 200 KB");
+        e.target.value = null;
+        return;
+      }
       setFormData(prev => ({
         ...prev,
-        profile_pic: files[0]
+        profile_pic: file
       }));
-      setPreview(URL.createObjectURL(files[0]));
+      setPreview(URL.createObjectURL(file));
     } else {
       setFormData(prev => ({
         ...prev,
@@ -107,15 +112,15 @@ const Signup = () => {
       </CardHeader>
       <CardContent className="space-y-2">
         <div className="space-y-1">
-          <Input autocomplete="off" name="name" type="text" placeholder="Enter Name" value={formData.name} onChange={handleInputChange} />
+          <Input autoComplete="new-name" name="name" type="text" placeholder="Enter Name" value={formData.name} onChange={handleInputChange} />
           {errors.name && <Error message={errors.name} />}
         </div>
         <div className="space-y-1">
-          <Input autocomplete="off" name="email" type="email" placeholder="Enter Email" value={formData.email} onChange={handleInputChange} />
+          <Input autoComplete="new-email" name="email" type="email" placeholder="Enter Email" value={formData.email} onChange={handleInputChange} />
           {errors.email && <Error message={errors.email} />}
         </div>
         <div className="space-y-1">
-          <Input autocomplete="off" name="password" type="password" placeholder="Enter Password" value={formData.password} onChange={handleInputChange} />
+          <Input autoComplete="new-password" name="password" type="password" placeholder="Enter Password" value={formData.password} onChange={handleInputChange} />
           {errors.password && <Error message={errors.password} />}
         </div>
         <div className="space-y-1">
@@ -131,9 +136,7 @@ const Signup = () => {
                   />
                 ) : (
                   <img
-                    src={
-                      defaultAvatar
-                    }
+                    src={Avatar}
                     alt="Default Avatar"
                     className="h-full w-full object-cover"
                   />

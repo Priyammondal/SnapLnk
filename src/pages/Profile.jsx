@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { UrlState } from "@/Context";
 import { updatePassword, updateProfilePic, updateUserName } from "@/db/apiProfile";
-import { getCurrentUserFromDb, logout } from "@/db/apiAuth";
+import { logout } from "@/db/apiAuth";
 import {
     Dialog,
     DialogContent,
@@ -15,14 +15,17 @@ import {
 } from "@/components/ui/dialog";
 import { useNavigate } from "react-router-dom";
 import useFetch from "@/hooks/useFetch";
+import { BeatLoader } from "react-spinners";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function ProfilePage() {
-    const { user, fetchUser } = UrlState();
+    const { user, setUser, fetchUser } = UrlState();
     const [selectedFile, setSelectedFile] = useState(null);
     const [preview, setPreview] = useState(null);
     const [showConfirm, setShowConfirm] = useState(false);
-    const [updating, setUpdating] = useState(false);
+    const [profilePicLoading, setProfilePicLoading] = useState(false);
     const [userName, setUserName] = useState(user?.user_metadata?.name || "");
+    const [nameLoading, setNameLoading] = useState(false);
     const [nameError, setNameError] = useState("");
 
     const [currentPassword, setCurrentPassword] = useState("");
@@ -31,9 +34,46 @@ export default function ProfilePage() {
 
     const [passwordError, setPasswordError] = useState("");
     const [passwordLoading, setPasswordLoading] = useState(false);
+    const MAX_IMAGE_SIZE = 200 * 1024; // 200 KB
 
-    const navigate = useNavigate();
     const { fn: fnLogout } = useFetch(logout);
+
+    useEffect(() => {
+        if (user?.user_metadata?.name) {
+            setUserName(user.user_metadata.name);
+        }
+    }, [user]);
+
+    useEffect(() => {
+        if (nameError) {
+            setTimeout(() => {
+                setNameError("")
+            }, 3000)
+        }
+    }, [nameError])
+
+    const handleUpdateAvatar = async () => {
+        try {
+            setProfilePicLoading(true);
+            await updateProfilePic(selectedFile, user);
+            setSelectedFile(null);
+            fetchUser();
+        } catch (err) {
+            console.error("Save Avatar error", err);
+            if (err.code === "AUTH_USER_NOT_FOUND") {
+                setSelectedFile(null);
+                setPreview(null);
+                setUser(null);
+                localStorage.clear();
+            } else {
+                setSelectedFile(null);
+                setPreview(null);
+            }
+        } finally {
+            setProfilePicLoading(false);
+        }
+    };
+
 
     const validateUsername = (name) => {
         if (!name.trim()) return "Username cannot be empty";
@@ -52,29 +92,7 @@ export default function ProfilePage() {
     };
 
 
-    useEffect(() => {
-        if (user?.user_metadata?.name) {
-            setUserName(user.user_metadata.name);
-        }
-    }, [user]);
-
-    const handleSaveAvatar = async () => {
-        setUpdating(true);
-        try {
-            const user = await getCurrentUserFromDb();
-            if (!user) return;
-            await updateProfilePic(selectedFile, user);
-            setSelectedFile(null);
-            fetchUser();
-        } catch (err) {
-            console.error(err);
-            alert("Failed to update profile picture.");
-        } finally {
-            setUpdating(false);
-        }
-    };
-
-    const updateProfile = async () => {
+    const handleUpdateUserName = async () => {
         const error = validateUsername(userName);
 
         if (error) {
@@ -84,20 +102,25 @@ export default function ProfilePage() {
 
         try {
             setNameError("");
-            await updateUserName(userName);
+            setNameLoading(true);
+            await updateUserName(userName, user);
             fetchUser();
         } catch (err) {
-            setNameError("Failed to update username. Try again.");
+            if (err.code === "AUTH_USER_NOT_FOUND") {
+                setUser(null);
+                localStorage.clear();
+            } else {
+                setNameError("Faild to update username!")
+                setTimeout(() => {
+                    setNameError("");
+                }, 3000)
+            }
+        } finally {
+            setNameLoading(false)
         }
     };
 
-    useEffect(() => {
-        if (nameError) {
-            setTimeout(() => {
-                setNameError("")
-            }, 3000)
-        }
-    }, [nameError])
+
 
     const validatePassword = () => {
         if (!currentPassword || !newPassword || !confirmPassword)
@@ -132,17 +155,20 @@ export default function ProfilePage() {
         try {
             setPasswordLoading(true);
             setPasswordError("");
-
-            const response = await updatePassword(newPassword);
-            console.log("response-->", response)
-
-            // Reset form on success
+            await updatePassword(newPassword, user);
             setCurrentPassword("");
             setNewPassword("");
             setConfirmPassword("");
-
         } catch (err) {
-            setPasswordError(err.message || "Failed to update password");
+            if (err.code === "AUTH_USER_NOT_FOUND") {
+                setUser(null);
+                localStorage.clear();
+            } else {
+                setPasswordError("Faild to update password!");
+                setTimeout(() => {
+                    setPasswordError("");
+                }, 3000)
+            }
         } finally {
             setPasswordLoading(false);
         }
@@ -156,16 +182,17 @@ export default function ProfilePage() {
                 <Card className="bg-zinc-900 border-zinc-800">
                     <CardContent className="p-6 flex flex-col items-center gap-4">
                         <div className="relative">
-                            <img
-                                src={
-                                    preview ||
-                                    (user?.user_metadata?.profile_pic
-                                        ? `${user.user_metadata.profile_pic}?t=${Date.now()}`
-                                        : "https://api.dicebear.com/7.x/identicon/svg")
-                                }
-                                alt="avatar"
-                                className="h-24 w-24 rounded-full border border-zinc-700"
-                            />
+                            <Avatar className="h-24 w-24 rounded-full border border-zinc-700">
+                                <AvatarImage
+                                    src={user?.user_metadata?.profile_pic
+                                        ? `${user?.user_metadata.profile_pic}`
+                                        : "https://api.dicebear.com/7.x/identicon/svg"}
+                                    className="object-cover"
+                                />
+                                <AvatarFallback>
+                                    <span>{user?.user_metadata.name?.[0] ?? 'U'}</span>
+                                </AvatarFallback>
+                            </Avatar>
                             <label className="absolute bottom-0 right-0 bg-red-500 p-2 rounded-full cursor-pointer">
                                 <Camera size={14} />
                                 <input
@@ -174,6 +201,11 @@ export default function ProfilePage() {
                                     onChange={(e) => {
                                         const file = e.target.files[0];
                                         if (!file) return;
+                                        if (file.size > MAX_IMAGE_SIZE) {
+                                            alert("Image size must be less than 200 KB");
+                                            e.target.value = null;
+                                            return;
+                                        }
                                         setSelectedFile(file);
                                         setPreview(URL.createObjectURL(file));
                                         setShowConfirm(true);
@@ -216,15 +248,15 @@ export default function ProfilePage() {
 
                                         <Button
                                             className="bg-red-500 hover:bg-red-600 text-white cursor-pointer"
-                                            disabled={updating}
+                                            disabled={profilePicLoading}
                                             onClick={async () => {
-                                                await handleSaveAvatar();
+                                                await handleUpdateAvatar();
                                                 setPreview(null);
                                                 setSelectedFile(null);
                                                 setShowConfirm(false);
                                             }}
                                         >
-                                            {updating ? "Updating..." : "Confirm"}
+                                            {profilePicLoading ? <BeatLoader size={10} color="white" /> : "Confirm"}
                                         </Button>
                                     </DialogFooter>
                                 </DialogContent>
@@ -239,8 +271,7 @@ export default function ProfilePage() {
                             <SidebarLink icon={User} label="Profile" active />
                             <SidebarLink icon={LogOut} label="Logout" action={() => {
                                 fnLogout().then(() => {
-                                    fetchUser()
-                                    navigate('/')
+                                    setUser(null);
                                 })
                             }} danger />
                         </div>
@@ -281,7 +312,9 @@ export default function ProfilePage() {
                                         <p className="text-xs text-red-400 mt-1">{nameError}</p>
                                     )}
                                 </div>
-                                <Button className="bg-red-500 hover:bg-red-600 text-white cursor-pointer" onClick={updateProfile}>Update Profile</Button>
+                                <Button disabled={nameLoading} className="bg-red-500 hover:bg-red-600 text-white cursor-pointer" onClick={handleUpdateUserName}>
+                                    {nameLoading ? <BeatLoader size={10} color="white" /> : "Update Username"}
+                                </Button>
                             </div>
                         </CardContent>
                     </Card>
@@ -335,7 +368,7 @@ export default function ProfilePage() {
                                     onClick={handleChangePassword}
                                     disabled={passwordLoading}
                                 >
-                                    {passwordLoading ? "Updating..." : "Update Password"}
+                                    {passwordLoading ? <BeatLoader size={10} color="white" /> : "Update Password"}
                                 </Button>
                             </div>
                         </CardContent>

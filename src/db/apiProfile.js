@@ -1,3 +1,4 @@
+import { deleteUserQrFolder } from "./apiUrls";
 import supabase, { supabaseUrl } from "./supabase";
 
 export async function deleteProfilePic(path) {
@@ -13,7 +14,6 @@ export async function deleteProfilePic(path) {
 }
 
 export async function updateProfilePic(file, user) {
-    if (!file || !user) throw new Error("File and user are required");
     // 1️⃣ Delete old avatar if exists
     const oldPath = user.user_metadata?.profile_pic_path;
     if (oldPath) {
@@ -27,7 +27,6 @@ export async function updateProfilePic(file, user) {
         .from("profile_pic")
         .upload(fileName, file, { upsert: true });
     if (uploadError) {
-        console.error("Error uploading new profile picture:", uploadError.message);
         throw new Error(uploadError.message);
     }
 
@@ -41,31 +40,76 @@ export async function updateProfilePic(file, user) {
         },
     });
 
-    if (updateError) {
-        console.error("Error updating user profile:", updateError.message);
-        throw new Error(updateError.message);
+    if (updateError && data?.user) {
+        throw new Error("Avatar Update Failed")
+    }
+
+    if (updateError && !data?.user) {
+        if (fileName) {
+            await supabase.storage
+                .from("profile_pic")
+                .remove([fileName]);
+        }
+        const userId = user?.id;
+        if (userId) {
+            await deleteUserQrFolder(userId);
+        }
+        const error = new Error("AUTH_USER_NOT_FOUND");
+        error.code = "AUTH_USER_NOT_FOUND";
+        throw error;
     }
 
     return data.user;
 }
 
-export const updateUserName = async (username) => {
+export const updateUserName = async (username, user) => {
     const {
         data,
-        error,
+        error: updateError,
     } = await supabase.auth.updateUser({
-        data: { name: username },
+        data: { name: username }
     });
 
-    if (error) throw error;
-    return data;
+    if (updateError && data?.user) {
+        throw new Error("Username Update Failed")
+    }
+
+    if (updateError && !data?.user) {
+        const oldPath = user.user_metadata?.profile_pic_path;
+        const userId = user?.id;
+        if (userId) {
+            await deleteUserQrFolder(userId);
+        }
+        if (oldPath) {
+            await deleteProfilePic(oldPath);
+        }
+        const error = new Error("AUTH_USER_NOT_FOUND");
+        error.code = "AUTH_USER_NOT_FOUND";
+        throw error;
+    }
+    return data.user;
 };
 
-export const updatePassword = async (newPassword) => {
+export const updatePassword = async (newPassword, user) => {
     const { data, error: updateError } = await supabase.auth.updateUser({
         password: newPassword,
     });
 
-    if (updateError) throw updateError;
+    if (updateError && data?.user) {
+        throw new Error("Password Update Failed")
+    }
+    if (updateError && !data?.user) {
+        const oldPath = user.user_metadata?.profile_pic_path;
+        const userId = user?.id;
+        if (userId) {
+            await deleteUserQrFolder(userId);
+        }
+        if (oldPath) {
+            await deleteProfilePic(oldPath);
+        }
+        const error = new Error("AUTH_USER_NOT_FOUND");
+        error.code = "AUTH_USER_NOT_FOUND";
+        throw error;
+    }
     return data;
 }

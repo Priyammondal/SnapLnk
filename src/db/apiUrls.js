@@ -1,4 +1,30 @@
-import supabase, { supabaseUrl } from "./supabase";
+import { deleteProfilePic } from "./apiProfile";
+import supabase from "./supabase";
+
+export async function deleteUserQrFolder(userId) {
+    const { data: files, error } = await supabase.storage
+        .from("qrs")
+        .list(userId, { limit: 1000 });
+
+    if (error) {
+        console.error("Failed to list QR files", error);
+        throw error;
+    }
+
+    if (!files || files.length === 0) return;
+
+    const paths = files.map(file => `${userId}/${file.name}`);
+
+    const { error: deleteError } = await supabase.storage
+        .from("qrs")
+        .remove(paths);
+
+    if (deleteError) {
+        console.error("Failed to delete QR folder", deleteError);
+        throw deleteError;
+    }
+}
+
 
 export async function getUrls(user_id) {
     const { data, error } = await supabase.from("urls").select("*").eq("user_id", user_id);
@@ -23,18 +49,15 @@ export async function getUrlById(urlId) {
 }
 
 export async function createUrl(
-    { title, longUrl, customUrl, userId },
+    { title, longUrl, customUrl, userId, user },
     qrBlob
 ) {
-    // use custom URL if provided, otherwise generate
     const shortUrl =
         customUrl?.trim() ||
         Math.random().toString(36).substring(2, 6);
 
-    // ✅ deterministic path (depends on final shortUrl)
     const qrPath = `${userId}/qr-${shortUrl}.png`;
 
-    // 🚨 prevent accidental double upload
     const { error: uploadError } = await supabase.storage
         .from("qrs")
         .upload(qrPath, qrBlob, {
@@ -54,7 +77,7 @@ export async function createUrl(
         .from("qrs")
         .getPublicUrl(qrPath).data.publicUrl;
 
-    const { data, error } = await supabase
+    const { data: createUrlData, error: createUrlError } = await supabase
         .from("urls")
         .insert({
             title,
@@ -68,13 +91,26 @@ export async function createUrl(
         .select()
         .single();
 
-    if (error) {
+    if (createUrlError && createUrlData) {
         // rollback QR if DB insert fails
         await supabase.storage.from("qrs").remove([qrPath]);
+        throw new Error("New link creation Failed");
+    }
+
+    if (createUrlError && !createUrlData) {
+        const oldPath = user.user_metadata?.profile_pic_path;
+        if (oldPath) {
+            await deleteProfilePic(oldPath);
+        }
+        if (userId) {
+            await deleteUserQrFolder(userId);
+        }
+        const error = new Error("AUTH_USER_NOT_FOUND");
+        error.code = "AUTH_USER_NOT_FOUND";
         throw error;
     }
 
-    return data;
+    return createUrlData;
 }
 
 export async function updateUrl(
@@ -87,6 +123,7 @@ export async function updateUrl(
         userId,
         oldQrPath,
         oldShortUrl,
+        user
     },
     newQrBlob
 ) {
@@ -97,9 +134,7 @@ export async function updateUrl(
     let qrPublicUrl = null;
 
     try {
-        // 🔁 If short URL OR long URL changed → regenerate QR
         if (shortUrlChanged || newQrBlob) {
-            // delete old QR
             if (oldQrPath) {
                 await supabase.storage.from("qrs").remove([oldQrPath]);
             }
@@ -120,7 +155,7 @@ export async function updateUrl(
                 .getPublicUrl(qrPath).data.publicUrl;
         }
 
-        const { data, error } = await supabase
+        const { data: updateUrlData, error: updateUrlError } = await supabase
             .from("urls")
             .update({
                 title,
@@ -135,18 +170,27 @@ export async function updateUrl(
             .select()
             .single();
 
-        if (error) throw error;
+        if (updateUrlError && !updateUrlData) {
+            const oldPath = user.user_metadata?.profile_pic_path;
+            if (oldPath) {
+                await deleteProfilePic(oldPath);
+            }
+            if (userId) {
+                await deleteUserQrFolder(userId);
+            }
+            const error = new Error("AUTH_USER_NOT_FOUND");
+            error.code = "AUTH_USER_NOT_FOUND";
+            throw error;
+        }
+        return updateUrlData;
 
-        return data;
     } catch (err) {
-        // 🚨 rollback if QR upload succeeded but DB failed
         if (qrPath && qrPath !== oldQrPath) {
             await supabase.storage.from("qrs").remove([qrPath]);
         }
         throw err;
     }
 }
-
 
 
 export async function deleteUrl(id) {

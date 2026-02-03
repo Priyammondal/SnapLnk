@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react'
 import { Button } from "@/components/ui/button"
 import {
     Card,
-    CardAction,
     CardContent,
     CardDescription,
     CardFooter,
@@ -25,21 +24,21 @@ const Login = () => {
         password: ''
     });
     const [errors, setErrors] = useState({});
-    const { data, loading, error, fn: fnLogin } = useFetch(login, formData)
-    const { fetchUser } = UrlState();
+    const { data, loading, error, fn: fnLogin } = useFetch(login, formData);
+    const { setUser } = UrlState();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const longUrl = searchParams.get("createNew");
 
     useEffect(() => {
         if (data && error == null) {
+            setUser(data?.user);
             navigate(
                 `/dashboard${longUrl ? `?createNew=${longUrl}` : ''}`,
                 { replace: true }
             );
-            fetchUser();
         }
-    }, [data, error, navigate, longUrl])
+    }, [data, loading, error, longUrl])
 
 
     function handleInputChange(e) {
@@ -76,7 +75,7 @@ const Login = () => {
 
 
     return (
-        <Card className="">
+        <Card>
             <CardHeader>
                 <CardTitle>Login</CardTitle>
                 <CardDescription>

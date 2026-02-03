@@ -26,7 +26,7 @@ import { createUrl, getUrlById, getUrls, updateUrl } from '@/db/apiUrls';
 import { BeatLoader } from 'react-spinners';
 
 const CreateLink = forwardRef((props, ref) => {
-  const { user, setUrls } = UrlState();
+  const { user, setUser, setUrls } = UrlState();
   const navigate = useNavigate();
   const qrRef = useRef(null);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -93,10 +93,10 @@ const CreateLink = forwardRef((props, ref) => {
     });
   };
 
-  const { loading, error: createUrlError, data, fn: fnCreateUrl } =
-    useFetch(createUrl, { ...formValues, userId: user.id });
+  const { loading, error: createUrlError, data: createdUrlObj, fn: fnCreateUrl } =
+    useFetch(createUrl, { ...formValues, userId: user.id, user });
 
-  const { fn: fnUpdateUrl } = useFetch(updateUrl)
+  const { error: updateUrlError, fn: fnUpdateUrl } = useFetch(updateUrl)
   const { data: newUrls, fn: fnUrls } = useFetch(getUrls, user.id);
 
   useEffect(() => {
@@ -104,12 +104,18 @@ const CreateLink = forwardRef((props, ref) => {
   }, [newUrls])
 
   useEffect(() => {
-    if (!createUrlError && data) {
+    if (!createUrlError && createdUrlObj) {
       setSearchParams({});
       setOpen(false);
-      navigate(`/link/${data[0].id}`);
+      navigate(`/link/${createdUrlObj.id}`);
     }
-  }, [createUrlError, data]);
+    if ((createUrlError && createUrlError.code === "AUTH_USER_NOT_FOUND") ||
+      (updateUrlError && updateUrlError.code === "AUTH_USER_NOT_FOUND")
+    ) {
+      setUser(null);
+      localStorage.clear();
+    }
+  }, [createUrlError, createdUrlObj, updateUrlError]);
 
   const createNewLink = async () => {
     setErrors({});
@@ -144,6 +150,7 @@ const CreateLink = forwardRef((props, ref) => {
           userId: user.id,
           oldQrPath: existingUrl.qr_path,
           oldShortUrl: existingUrl.short_url,
+          user
         },
         blob
       );
@@ -230,10 +237,11 @@ const CreateLink = forwardRef((props, ref) => {
         </div>
 
         {createUrlError && <Error message={createUrlError.message} />}
+        {updateUrlError && <Error message={updateUrlError.message} />}
 
         <DialogFooter className="mt-4">
           <Button onClick={handleSubmit} disabled={loading} className="cursor-pointer">
-            {loading ? <BeatLoader size={10} color="white" /> : isEdit ? "Save Changes" : "Create"}
+            {loading ? <BeatLoader size={10} color="#FF5555" /> : isEdit ? "Save Changes" : "Create"}
           </Button>
         </DialogFooter>
       </DialogContent>

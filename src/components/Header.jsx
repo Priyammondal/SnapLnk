@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Logo from '@/assets/logo.png'
 import { Button } from './ui/button'
@@ -18,21 +18,12 @@ import { logout } from '@/db/apiAuth'
 import { BarLoader } from 'react-spinners'
 
 const Header = () => {
-    const navigate = useNavigate()
-    const { user, fetchUser } = UrlState()
-    const { loading, fn: fnLogout } = useFetch(logout)
-    const [userName, setUserName] = useState(user?.user_metadata?.name || "");
-
-    useEffect(() => {
-        if (user?.user_metadata?.name) {
-            setUserName(user.user_metadata.name);
-        }
-    }, [user]);
-
+    const navigate = useNavigate();
+    const { user, setUser } = UrlState();
+    const { loading, fn: fnLogout } = useFetch(logout);
 
     return (
         <>
-            {/* Loader (fixed, no layout shift) */}
             {loading && (
                 <div className="fixed top-0 left-0 w-full z-50">
                     <BarLoader width="100%" color="#FF5555" />
@@ -69,12 +60,12 @@ const Header = () => {
                                     <Avatar className="h-9 w-9">
                                         <AvatarImage
                                             src={user?.user_metadata?.profile_pic
-                                                ? `${user.user_metadata.profile_pic}?t=${Date.now()}`
+                                                ? `${user?.user_metadata.profile_pic}`
                                                 : "https://api.dicebear.com/7.x/identicon/svg"}
                                             className="object-cover"
                                         />
                                         <AvatarFallback>
-                                            <span className='pb-2'>{userName?.[0] ?? 'U'}</span>
+                                            <span>{user?.user_metadata.name?.[0] ?? 'U'}</span>
                                         </AvatarFallback>
                                     </Avatar>
                                 </DropdownMenuTrigger>
@@ -84,7 +75,7 @@ const Header = () => {
                                     className="w-48"
                                 >
                                     <DropdownMenuLabel className="truncate">
-                                        {userName}
+                                        {user?.user_metadata.name}
                                     </DropdownMenuLabel>
 
                                     <DropdownMenuSeparator />
@@ -111,8 +102,7 @@ const Header = () => {
                                         className="text-red-400 focus:text-red-400 cursor-pointer"
                                         onClick={() => {
                                             fnLogout().then(() => {
-                                                fetchUser()
-                                                navigate('/')
+                                                setUser(null);
                                             })
                                         }}
                                     >
